@@ -1,0 +1,72 @@
+import tensorflow as tf
+from tensorflow.keras.datasets import mnist
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.keras.utils import to_categorical
+import numpy as np
+import tkinter as tk
+from tkinter import filedialog
+from PIL import Image, ImageTk
+
+# Cargar datos de MNIST
+(X_train, y_train), (X_test, y_test) = mnist.load_data()
+
+# Normalizar datos
+X_train, X_test = X_train / 255.0, X_test / 255.0
+
+# Convertir etiquetas a one-hot encoding
+y_train = to_categorical(y_train)
+y_test = to_categorical(y_test)
+
+# Crear el modelo
+modelo_nn = Sequential([
+    Flatten(input_shape=(28, 28)),
+    Dense(128, activation='relu'),
+    Dense(64, activation='relu'),
+    Dense(10, activation='softmax')
+])
+
+# Compilar el modelo
+modelo_nn.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+# Entrenar el modelo
+historial = modelo_nn.fit(X_train, y_train, epochs=5, validation_split=0.2)
+
+# Evaluar el modelo
+test_loss, test_accuracy = modelo_nn.evaluate(X_test, y_test)
+print("Precisión en el conjunto de prueba:", test_accuracy)
+
+# Crear la interfaz gráfica
+def predecir_imagen(imagen):
+    imagen = imagen.convert("L")  # Convertir a escala de grises
+    imagen = imagen.resize((28, 28))  # Redimensionar a 28x28 píxeles
+    imagen_array = np.array(imagen) / 255.0  # Normalizar
+    imagen_array = imagen_array.reshape(1, 28, 28)  # Cambiar forma para el modelo
+    prediccion = modelo_nn.predict(imagen_array)
+    return np.argmax(prediccion)
+
+def cargar_imagen():
+    archivo = filedialog.askopenfilename()
+    if archivo:
+        imagen = Image.open(archivo)
+        resultado = predecir_imagen(imagen)
+        label_resultado.config(text=f"Predicción: {resultado}")
+
+# Crear ventana
+ventana = tk.Tk()
+ventana.title("Clasificador de Dígitos Manuscritos")
+
+# Botón para cargar imagen
+btn_cargar = tk.Button(ventana, text="Cargar Imagen", command=cargar_imagen)
+btn_cargar.pack()
+
+# Etiqueta para mostrar el resultado
+label_resultado = tk.Label(ventana, text="")
+label_resultado.pack()
+
+# Mostrar la precisión del modelo
+label_precision = tk.Label(ventana, text=f"Precisión en el conjunto de prueba: {test_accuracy:.4f}")
+label_precision.pack()
+
+# Ejecutar la interfaz
+ventana.mainloop()
